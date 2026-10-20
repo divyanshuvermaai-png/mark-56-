@@ -1,0 +1,70 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          jarvis
+# Required-Start:    $network $local_fs $remote_fs
+# Required-Stop:     $network $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: JARVIS Mark 56 Voice Assistant Service
+# Description:       Headless Gemini Live API Voice Assistant daemon for MX Linux
+### END INIT INFO
+
+# Path to installation directory
+JARVIS_DIR="/opt/jarvis-mark-56"
+# If running as standard user from home folder, adjust USER and JARVIS_DIR
+JARVIS_USER="divyanshu"
+VENV_PYTHON="$JARVIS_DIR/.venv/bin/python"
+DAEMON="$JARVIS_DIR/run.py"
+PIDFILE="/var/run/jarvis.pid"
+LOGFILE="/var/log/jarvis.log"
+
+# Fallback to local workspace if /opt is not used
+if [ ! -d "$JARVIS_DIR" ]; then
+    JARVIS_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+    JARVIS_USER="$(id -un)"
+    VENV_PYTHON="$JARVIS_DIR/.venv/bin/python"
+    DAEMON="$JARVIS_DIR/run.py"
+    PIDFILE="/tmp/jarvis.pid"
+    LOGFILE="$JARVIS_DIR/jarvis.log"
+fi
+
+. /lib/lsb/init-functions
+
+case "$1" in
+    start)
+        log_daemon_msg "Starting J.A.R.V.I.S. Mark 56 Voice Assistant" "jarvis"
+        if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+            log_progress_msg "already running"
+            log_end_msg 0
+            exit 0
+        fi
+
+        start-stop-daemon --start --background --make-pidfile --pidfile "$PIDFILE" \
+            --chuid "$JARVIS_USER" --chdir "$JARVIS_DIR" \
+            --startas /bin/bash -- -c "exec '$VENV_PYTHON' '$DAEMON' >> '$LOGFILE' 2>&1"
+
+        RETVAL=$?
+        log_end_msg $RETVAL
+        ;;
+    stop)
+        log_daemon_msg "Stopping J.A.R.V.I.S. Mark 56 Voice Assistant" "jarvis"
+        start-stop-daemon --stop --pidfile "$PIDFILE" --retry 5
+        RETVAL=$?
+        rm -f "$PIDFILE"
+        log_end_msg $RETVAL
+        ;;
+    restart|force-reload)
+        $0 stop
+        sleep 2
+        $0 start
+        ;;
+    status)
+        status_of_proc -p "$PIDFILE" "$VENV_PYTHON" "jarvis"
+        ;;
+    *)
+        echo "Usage: /etc/init.d/jarvis {start|stop|restart|force-reload|status}"
+        exit 1
+        ;;
+esac
+
+exit 0

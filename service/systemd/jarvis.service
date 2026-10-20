@@ -1,0 +1,19 @@
+[Unit]
+Description=J.A.R.V.I.S. Mark 56 Voice Assistant Daemon
+After=network-online.target sound.target
+Wants=network-online.target sound.target
+
+[Service]
+Type=simple
+# Adjust User and WorkingDirectory to match your deployment path
+User=%i
+WorkingDirectory=/home/%i/jarvis-mark-56
+EnvironmentFile=-/home/%i/jarvis-mark-56/.env
+ExecStart=/home/%i/jarvis-mark-56/.venv/bin/python run.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
